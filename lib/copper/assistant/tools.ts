@@ -10,6 +10,10 @@ import {
   type Plan,
   type ProductId,
 } from "@/lib/copper/catalog";
+import {
+  searchDocuments,
+  type DocumentSearch,
+} from "@/lib/copper/document-search";
 import { readInventory } from "@/lib/copper/inventory";
 
 export type ProductList = {
@@ -177,6 +181,19 @@ export async function checkAvailability(
   };
 }
 
+export const searchDocumentsInput = z.object({
+  query: z.string().trim().min(2).max(200),
+});
+
+/**
+ * search_documents: finds the pages of Copper's user guides, terms and
+ * Copper Plus FAQ that best match a question, so Copper can answer from them
+ * and cite the document and page.
+ */
+export function findInDocuments(input: { query: string }): DocumentSearch {
+  return searchDocuments(input.query);
+}
+
 export const copperTools = {
   get_products: tool({
     description:
@@ -200,5 +217,11 @@ export const copperTools = {
       "Checks today's stock for a Copper product, for every color or just one.",
     inputSchema: checkAvailabilityInput,
     execute: async (input) => checkAvailability(input),
+  }),
+  search_documents: tool({
+    description:
+      "Search Copper's customer documents (the Copper Home and Copper Notes user guides, the Terms and Conditions and the Copper Plus FAQ) page by page. Use it for how-to, setup, troubleshooting and error codes, warranty, returns, refunds, billing, privacy and terms questions. It returns the best-matching pages, each with its document title and page number, and lists any words in the question that no document mentions.",
+    inputSchema: searchDocumentsInput,
+    execute: async (input) => findInDocuments(input),
   }),
 };

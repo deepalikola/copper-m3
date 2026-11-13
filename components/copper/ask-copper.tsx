@@ -9,6 +9,7 @@ import {
   ArrowRightIcon,
   ArrowUpIcon,
   BrainIcon,
+  FileTextIcon,
   MessageCircleIcon,
   TriangleAlertIcon,
   WrenchIcon,
@@ -34,6 +35,7 @@ import {
   TOOL_LABELS,
 } from "@/lib/copper/assistant/progress";
 import { formatUsd, getPlans, getProducts } from "@/lib/copper/catalog";
+import { sourcesIn, splitCitations } from "@/lib/copper/citations";
 import { cn } from "@/lib/utils";
 
 const STARTERS = [
@@ -383,11 +385,12 @@ function Answer({
             </div>
           )}
           <p className="text-sm whitespace-pre-wrap">
-            {reply}
+            <ReplyText text={reply} />
             {working && (
               <span className="bg-primary ml-0.5 inline-block h-4 w-0.5 animate-pulse align-middle" />
             )}
           </p>
+          <Sources text={reply} />
         </div>
       )}
     </div>
@@ -420,6 +423,53 @@ function Station({
       </p>
       {children}
     </section>
+  );
+}
+
+/** The reply, with each "(Document title, page N)" turned into a link to that page. */
+function ReplyText({ text }: { text: string }) {
+  return splitCitations(text).map((part, i) =>
+    typeof part === "string" ? (
+      part
+    ) : (
+      <a
+        key={i}
+        href={part.href}
+        target="_blank"
+        rel="noreferrer"
+        className="text-primary font-medium underline underline-offset-2"
+      >
+        {part.text}
+      </a>
+    ),
+  );
+}
+
+/** The document pages an answer cites, each a link that opens the PDF at that page. */
+function Sources({ text }: { text: string }) {
+  const sources = sourcesIn(text);
+  if (sources.length === 0) return null;
+  return (
+    <div data-testid="sources" className="mt-3 border-t pt-3">
+      <p className="text-muted-foreground mb-1.5 flex items-center gap-1 text-[11px] font-semibold tracking-widest uppercase">
+        <FileTextIcon className="size-3" /> Sources
+      </p>
+      <ul className="flex flex-col gap-1.5">
+        {sources.map((source) => (
+          <li key={source.href}>
+            <a
+              href={source.href}
+              target="_blank"
+              rel="noreferrer"
+              className="bg-secondary hover:border-primary inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium"
+            >
+              <FileTextIcon className="size-3.5" />
+              {source.title} · page {source.page}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -602,6 +652,33 @@ function ToolOutput({ name, output }: { name: string; output: any }) {
             <StockPill stock={c.stock} restockDate={c.restockDate} />
           </div>
         ))}
+      </div>
+    );
+  }
+  if (name === "search_documents" && output?.results) {
+    return (
+      <div className="space-y-2 text-xs">
+        {output.results.length === 0 && (
+          <p>No page in the support documents matches.</p>
+        )}
+        {output.results.map((hit: any) => (
+          <div key={hit.url} className="space-y-0.5">
+            <a
+              href={hit.url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary font-semibold underline underline-offset-2"
+            >
+              {hit.title} · page {hit.page}
+            </a>
+            <p className="text-muted-foreground">{hit.snippet}</p>
+          </div>
+        ))}
+        {output.notInDocuments?.length > 0 && (
+          <p className="text-chart-3 font-medium">
+            Not mentioned in any document: {output.notInDocuments.join(", ")}
+          </p>
+        )}
       </div>
     );
   }
