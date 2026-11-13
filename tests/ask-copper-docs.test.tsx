@@ -103,6 +103,15 @@ describe("Copper's instructions", () => {
     );
     expect(COPPER_INSTRUCTIONS).toContain("notInDocuments");
     expect(COPPER_INSTRUCTIONS).toMatch(/Do not guess/);
+    // Anything that isn't about products, prices or stock searches the docs
+    // first, even a "can it do that?" question like the pizza one.
+    expect(COPPER_INSTRUCTIONS).toMatch(
+      /search_documents before you say anything else/,
+    );
+    expect(COPPER_INSTRUCTIONS).toContain("can Copper Home order me a pizza?");
+    expect(COPPER_INSTRUCTIONS).toMatch(
+      /Never answer or decline these from memory/,
+    );
   });
 });
 
